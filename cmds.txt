@@ -1,0 +1,45 @@
+get_dispatch -- check for dispatch addres
+
+set_dispatch -- set dispatch to this address
+
+set_prod_info -- set information about a producer's address
+item -- <str> item produced by this station
+length -- <int> length of the station
+stack -- <int> stack size of hte item provided
+capacity -- <int> capacity of station
+
+get_net_info -- get information about network
+length -- <int> length of the requester platform
+
+set_net_info -- set network availability information
+length -- <int> length of the platform requested
+-- optdata includes table of items available / stack size.  
+
+set_prod_stat -- set current information about a producer
+
+
+set_cons_stat -- set information about a consumer
+
+train_request -- request a train
+stop -- hash of train stop
+length -- length of train station
+item -- item requested
+qty -- current storage amount
+pri - priority of this request (0 - 9)
+capacity -- total this station can store
+full -- if the train should be full
+
+train_ready -- train is ready to go
+length -- length of train
+item -- item in train
+qty -- quantity in train
+full -- if the train is full
+
+send_train -- send a train
+stop -- hash stop to send the train to
+netaddr -- NIC of the destination stop
+
+incoming_train -- send info of incoming train
+train -- hash of the incoming train
+item -- item in train
+qty -- quantity to be delivered
