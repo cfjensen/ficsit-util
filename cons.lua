@@ -658,6 +658,8 @@ while true do
             if incoming.item == req.item then stock = stock + incoming.qty end
           end
           
+          capacity = capacity
+          
           -- no stock and no inventory, assume the station can at least handle
           -- one train
           if stock == 0 and capacity == 0 then
@@ -676,6 +678,7 @@ while true do
              item = req.item,
              qty = req.qty,
              pri = req.pri,
+             stock = stock,
              capacity = capacity,
              full = full_load}))
         end

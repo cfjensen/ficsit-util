@@ -47,8 +47,14 @@ function PrintMessage(src, data)
   print("----- Message " .. seq .. " from " .. src .. " -----")
   PrintTable(data)
   print("------------------------------------------------------------")
+  seq = seq + 1
 end
 
+
+function ReadFile(fname)
+  local f = fs.open(fname, "r")
+  local s = ""
+end
 
 -- Find attached inventories
 function FindStorage(nodes)
@@ -187,6 +193,29 @@ function FindStation(hash)
   return nil
 end
 
+-- available resources in the network
+-- item_string -> stack quantity
+resources = {}
+
+-- index of ready trains
+-- station_length
+--   item_required
+--     #
+--       nic:     network_address
+--       station: station_hash
+--       qty:     quantity required
+--       full:    bool
+ready = {}
+
+-- index of waiting stations
+-- station_length
+--   item_required
+--     #
+--       nic:     network_address
+--       station: station_hash
+--       pri:     station_priority
+--       full:    bool
+waiting = {}
 
 do -- Find Components
 -- attached items
@@ -198,17 +227,48 @@ do -- Find Components
   event.listen(nic)
   nic:open(FLN_PORT)
 
+  pan = component.proxy(component.findComponent(findClass("MCP_1Point_Center_C"))[1])
+  btn = pan:getModule(0, 0)
+  event.listen(btn)
 
   resources = {}
   ready = {}
+end
+
+do -- Disk initialization
+  fs = filesystem
+  if fs.initFileSystem("/dev") == false then
+      computer.panic("Cannot initialize /dev")
+  end
+  local dsk = nil
+  for _, drive in pairs(fs.childs("/dev")) do
+    if drive ~= "serial" then dsk = drive end
+  end
+  
+  if not dsk then computer.panic("No HDD Found") end
+
+  fs.mount("/dev/" .. dsk, "/")
 end
 
 nic:broadcast(FLN_PORT, ser({cmd = "set_dispatch"}))
 seq = 0
 while true do
   evt, src, netsrc, port, netdata = event.pull(UPDATE_TIME_S)
-  if src == nic and netsrc ~= nic_addr then
-    seq = seq + 1
+  if src == btn then
+    local code
+    local f = fs.open("prod.lua", "r")
+    if pcall(function() code = f:read(80000) end) then
+      print("DFU Producers")
+      nic:broadcast(FLN_PORT, ser({cmd = "dfu_prod"}), code)
+    end
+
+    local f = fs.open("cons.lua", "r")
+    if pcall(function() code = f:read(80000) end) then
+      print("DFU Consumers")
+      nic:broadcast(FLN_PORT, ser({cmd = "dfu_cons"}), code)
+    end
+    
+  elseif src == nic and netsrc ~= nic_addr then
     local msg = des(netdata)
     -- PrintMessage(netsrc, msg)
 
@@ -233,7 +293,7 @@ while true do
     -- train request, see if any available can fulfill
     elseif msg.cmd == "train_request" then
       for netaddr, qty in pairs(GetTable(ready, msg.length, msg.item)) do
-        if qty < msg.capacity then
+        if qty < msg.capacity - (msg.stock or 0) then
           print("Dispatch " .. qty .. " from " .. netaddr .. " to  " .. netsrc)
           nic:send(netaddr, FLN_PORT, ser(
               {cmd = "send_train",

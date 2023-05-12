@@ -1,5 +1,8 @@
 -- keep a buffer inventory in each consumer for this number of seconds
 BUFFER_TIME = 120.0
+-- only count items in transit to a fraction of the desired amount
+-- helps with larger factories where items will always be in transit
+TRANSIT_FACTOR = 0.5
 -- possible fuel for nuclear reactors
 NUCLEAR_FUEL = {"Uranium Fuel Rod", "Plutonium Fuel Rod"}
 
@@ -616,7 +619,7 @@ function SmartSplit(s)
     inv = inv + ci
     need = need + cn
   end
-  inv = inv + split.incoming[item]
+  inv = inv + split.incoming[item] * TRANSIT_FACTOR
   
   
   if (split.is_terminal or need > inv) and s:transferItem(split.direction) then
